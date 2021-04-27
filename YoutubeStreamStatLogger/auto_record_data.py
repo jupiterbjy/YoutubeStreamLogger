@@ -25,10 +25,13 @@ from youtube_api_client import Client, HttpError
 ROOT = pathlib.Path(__file__).parent.absolute()
 CONFIG_PATH = ROOT.joinpath("autorec_config.json")
 LOG_STAT_PATH = ROOT.joinpath("log_stat.py")
-LOG_PATH = ROOT.joinpath("Logs")
+SELF_LOG_PATH = ROOT.joinpath("Logs")
+OUTPUT_PATH = ROOT.joinpath("Records/")
+
 logger = logging.getLogger("AutoRecord")
 
-LOG_PATH.mkdir(parents=True, exist_ok=True)
+SELF_LOG_PATH.mkdir(parents=True, exist_ok=True)
+OUTPUT_PATH.mkdir(parents=True, exist_ok=True)
 
 
 def load_json(path) -> Dict:
@@ -132,12 +135,13 @@ class Manager:
 
     def task_gen(self):
         def closure(ch_name, vid_id):
-            path = LOG_STAT_PATH.parent.joinpath(ch_name)
+            task_running = self.video_in_task
+            path = OUTPUT_PATH.joinpath(ch_name)
             path.mkdir(parents=True, exist_ok=True)
 
             async def task():
                 # add video id to running tasks list
-                self.video_in_task.add(vid_id)
+                task_running.add(vid_id)
 
                 arg = f'"{LOG_STAT_PATH.as_posix()}"' \
                       f' -o "{path}" ' \
@@ -154,8 +158,8 @@ class Manager:
                         "Subprocess %s failed. return code: %s", vid_id, err.returncode
                     )
                 finally:
-                    self.video_in_task.remove(vid_id)
-                    logger.info("Task %s returned.", vid_id)
+                    task_running.remove(vid_id)
+                    logger.info("Task %s returned. %s task(s) running.", vid_id, len(task_running))
 
             return task
 
@@ -203,7 +207,7 @@ if __name__ == "__main__":
     start_time = datetime.datetime.now()
 
     log_path = (
-        LOG_PATH.joinpath(f"{start_time.date().isoformat()}.log")
+        SELF_LOG_PATH.joinpath(f"{start_time.date().isoformat()}.log")
         if args.output_log
         else None
     )
