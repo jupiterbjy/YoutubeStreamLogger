@@ -39,7 +39,11 @@ def calculate_delta(source) -> array:
             yield current - previous
 
     # originally supplied data is unsigned long "L", but fluctuation won't be that huge.
-    return array("l", view_diff_gen(source))
+    try:
+        return array("l", view_diff_gen(source))
+    except TypeError:
+        # Data is hidden by streamer
+        return array("i", (0 for _ in range(len(source))))
 
 
 def plot_main(mapping, save_as_img: Union[None, pathlib.Path] = None):
@@ -66,6 +70,9 @@ def plot_main(mapping, save_as_img: Union[None, pathlib.Path] = None):
 
     # some old data don't have this.
     try:
+        if not data["subscriberCount"]:
+            raise KeyError
+
         sub_change = calculate_delta(data["subscriberCount"])
     except KeyError:
         sub_change = None
@@ -97,8 +104,8 @@ def plot_main(mapping, save_as_img: Union[None, pathlib.Path] = None):
     axes[1].legend()
 
     # Plot 3 - up/downvote, subscriber plot
-    axes[2].plot(like_cast, color="green", label="Upvote casted")
-    axes[2].plot(dislike_cast, color="red", label="Downvote casted")
+    axes[2].plot(like_cast, color="green", label=f"Upvote casted")
+    axes[2].plot(dislike_cast, color="red", label=f"Downvote casted")
     if sub_change:
         axes[2].plot(sub_change, color="cyan", label="Sub. fluctuation")
 

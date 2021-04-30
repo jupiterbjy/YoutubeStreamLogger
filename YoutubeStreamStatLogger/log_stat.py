@@ -67,7 +67,9 @@ async def data_gen(record_sub=False) -> Generator[dict, None, None]:
     try:
         for iteration in itertools.count(0):
 
-            new_dict = request_join()
+            # These might be hidden in some streams.
+            new_dict = {"viewCount": None, "likeCount": None, "dislikeCount": None}
+            new_dict.update(request_join())
 
             log_string = (
                 "Viewers(Cur/Tot):{concurrentViewers}/{viewCount}"
@@ -116,7 +118,7 @@ class Router:
         """
 
         for key, val in value_dict.items():
-            self.__dict__[key].append(int(val))
+            self.__dict__[key].append(int(val) if val is not None else None)
 
     def dump(self) -> dict:
         """
