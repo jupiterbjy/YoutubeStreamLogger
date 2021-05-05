@@ -38,3 +38,6 @@ def init_logger(logger, debug, file_output=""):
 
     if COLOR:
         coloredlogs.install(level=level, logger=logger)
+        logger.info("Colored logging enabled.")
+    else:
+        logger.info("Colored logging is disabled. Install 'coloredlogs' to enable it.")

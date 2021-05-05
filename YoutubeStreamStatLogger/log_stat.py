@@ -270,6 +270,15 @@ async def main():
 
     write_func = write_json_closure(full_file_path, data)
 
+    # initialize data dispatcher, and add __dict__ instance to data
+    router_instance = Router()
+    data["data"] = router_instance.__dict__
+
+    # to make async for loop do something every n time, will use infinite cycler.
+    flush_interval_control = itertools.cycle(
+        not bool(n) for n in reversed(range(args.flush))
+    )
+
     # Wait for stream to start
     try:
         await wait_for_stream()
@@ -279,14 +288,7 @@ async def main():
         logger.warning("Removing empty json file %s", full_file_path.as_posix())
         raise
 
-    # initialize data dispatcher, and add __dict__ instance to data
-    router_instance = Router()
-    data["data"] = router_instance.__dict__
-
-    # to make async for loop do something every n time, will use infinite cycler.
-    flush_interval_control = itertools.cycle(
-        not bool(n) for n in reversed(range(args.flush))
-    )
+    logger.info("Stream active, logging start.")
 
     # We got a lot of time for appending, hope async sleep in async for works better!
     try:

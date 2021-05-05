@@ -1,3 +1,4 @@
 #!/usr/bin/env sh
-mkdir -p ./Logs
-./auto_record_data.py 2>&1 | tee -a ./Logs/auto_record.log
+DIR="$( cd "$( dirname "$0" )" && pwd -P )"
+mkdir -p "$DIR/Logs"
+"$DIR/auto_record_data.py" 2>&1 | tee -a "$DIR/Logs/auto_record.log"
