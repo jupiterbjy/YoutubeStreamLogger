@@ -90,6 +90,8 @@ class Manager:
         video_live = {}
         video_upcoming = {}
 
+        logger.info("Checking %s channels.", len(self.channel_list))
+
         for channel, channel_id in self.channel_list.items():
             try:
                 upcoming = self.client.get_upcoming_streams(channel_id)

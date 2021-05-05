@@ -23,7 +23,8 @@ def init_logger(logger, debug, file_output=""):
 
     level = logging.DEBUG if debug else logging.INFO
 
-    fmt = logging.Formatter("[%(name)s][%(levelname)s] %(asctime)s <%(funcName)s> %(message)s")
+    fmt_str = "[%(name)s][%(asctime)s][%(levelname)s] <%(funcName)s> %(message)s"
+    fmt = logging.Formatter(fmt_str)
 
     handlers = [logging.StreamHandler()]
     if file_output:
@@ -37,7 +38,7 @@ def init_logger(logger, debug, file_output=""):
         logger.addHandler(handler)
 
     if COLOR:
-        coloredlogs.install(level=level, logger=logger)
+        coloredlogs.install(level=level, fmt=fmt_str, logger=logger, isatty=True)
         logger.info("Colored logging enabled.")
     else:
         logger.info("Colored logging is disabled. Install 'coloredlogs' to enable it.")
