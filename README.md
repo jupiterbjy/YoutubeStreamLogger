@@ -4,7 +4,24 @@ Just a micro repo for collecting and visualizing live stream stats.
 
 Requires google cloud API to work. Very vague, possibly not so useful docs are included in each file.
 
+
+
 ## Usage
+
+`auto_record_data.py`
+
+For this one you'll have to edit `autoreg_config.json` to match your taste.
+
+```commandline
+usage: auto_record_data.py [-h] [-a KEY] [-o]
+
+Records logs about public data of live streams held on channels listed in configuration file.
+
+optional arguments:
+  -h, --help         show this help message and exit
+  -a KEY, --api KEY  Optional Google Data API key
+  -o, --output-log   Custom path to store log file. Will use './Logs' if not specified.
+```
 
 `log_stat.py`
 ```commandline

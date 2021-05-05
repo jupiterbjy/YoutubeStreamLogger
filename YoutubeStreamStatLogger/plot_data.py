@@ -162,6 +162,8 @@ def main():
 
 if __name__ == "__main__":
 
+    # parsing end ===================================
+
     parser = argparse.ArgumentParser(description="Opens generated .json data.")
     parser.add_argument(
         "path",
@@ -178,6 +180,8 @@ if __name__ == "__main__":
         action="store_true",
         help="Save as pdf. Name will be same as json file opened.",
     )
+
+    # parsing end ===================================
 
     args = parser.parse_args()
 

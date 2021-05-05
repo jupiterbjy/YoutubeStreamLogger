@@ -83,7 +83,7 @@ async def data_gen(record_sub=False) -> Generator[dict, None, None]:
             await trio.sleep(args.poll)
 
     except KeyError:
-        logger.info("Stream ID %s closed.", args.video_id)
+        logger.info("Stream closed.")
         return
 
     except HttpError as err:
@@ -188,6 +188,8 @@ def fetch_api(request) -> dict:
 async def wait_for_stream():
     """
     Literally does what it's named for. await until designated stream time.
+
+    Raises RuntimeError when stream is either seems to be canceled.
     """
 
     # check if actually it is active/upcoming stream
@@ -197,13 +199,13 @@ async def wait_for_stream():
 
     if status == "live":
         logger.info(
-            "liveBroadcastContent returned `%s`, stream already active.", status
+            "API returned `%s`, stream already active.", status
         )
         return
 
     if status == "none":
         logger.critical(
-            "liveBroadcastContent returned `%s`, is this a livestream?", status
+            "API returned `%s`, is this a livestream?", status
         )
         raise RuntimeError("No upcoming/active stream.")
 
@@ -224,6 +226,7 @@ async def wait_for_stream():
 
         # Sleep until due time
         await trio.sleep(delta)
+        logger.info("Awake, waiting for live state.")
 
     # Check if stream is actually started
     while status := client.get_stream_status(args.video_id):
@@ -231,7 +234,7 @@ async def wait_for_stream():
 
         if status == "none":
             logger.critical(
-                "liveBroadcastContent returned `%s`, is stream canceled?", status
+                "API returned `%s`, is stream canceled?", status
             )
             raise RuntimeError("No upcoming/active stream.")
 
@@ -390,9 +393,9 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    logger = logging.getLogger(f"log_stat/{args.video_id}")
-
     # parsing end ===================================
+
+    logger = logging.getLogger(f"log_stat/{args.video_id}")
 
     client = Client(args.api)
     init_logger(logger, args.verbose)

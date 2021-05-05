@@ -50,6 +50,7 @@ class Manager:
     Main logic, should be driven by external loop inside event loop.
     Generate task to run stream logging.
     """
+
     def __init__(self, config_path, client_: Client):
         self.client = client_
 
@@ -67,7 +68,13 @@ class Manager:
         self.load_config()
 
     @property
-    def check_interval(self):
+    def check_interval(self) -> float:
+        """
+        Returns check interval listed in loaded configuration file.
+
+        :return: Interval in hour, either int or float.
+        """
+
         return self.loaded["check_interval_hour"]
 
     @property
@@ -143,10 +150,12 @@ class Manager:
                 # add video id to running tasks list
                 task_running.add(vid_id)
 
-                arg = f'"{LOG_STAT_PATH.as_posix()}"' \
-                      f' -o "{path}" ' \
-                      f'{self.loaded["log_stat_param"]} ' \
-                      f'{vid_id}'
+                arg = (
+                    f'"{LOG_STAT_PATH.as_posix()}"'
+                    f' -o "{path}" '
+                    f'{self.loaded["log_stat_param"]} '
+                    f"{vid_id}"
+                )
 
                 if args.api:
                     arg += f" -a {args.api}"
@@ -159,7 +168,11 @@ class Manager:
                     )
                 finally:
                     task_running.remove(vid_id)
-                    logger.info("Task %s returned. %s task(s) running.", vid_id, len(task_running))
+                    logger.info(
+                        "Task %s returned. %s task(s) running.",
+                        vid_id,
+                        len(task_running),
+                    )
 
             return task
 
@@ -197,11 +210,32 @@ async def main():
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-a", "--api", metavar="KEY", type=str, default=None)
-    parser.add_argument("-o", "--output-log", action="store_true")
+
+    # parsing start =================================
+
+    parser = argparse.ArgumentParser(
+        description="Records logs about public data of live streams "
+                    "held on channels listed in configuration file."
+    )
+    parser.add_argument(
+        "-a",
+        "--api",
+        metavar="KEY",
+        type=str,
+        default=None,
+        help="Optional Google Data API key",
+    )
+    parser.add_argument(
+        "-o",
+        "--output-log",
+        action="store_true",
+        help="Custom path to store log file. Will use './Logs' if not specified.",
+    )
 
     args = parser.parse_args()
+
+    # parsing end ===================================
+
     client = Client(args.api)
 
     start_time = datetime.datetime.now()
