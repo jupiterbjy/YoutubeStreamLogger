@@ -263,8 +263,9 @@ async def main():
     # pre-bake file writer function. Will validate output path in process
     data = {"stream_title": video_title, "interval": args.poll}
     start_t = datetime.datetime.now()
+
     file_name = (
-        f"{start_t.date().isoformat()}_{args.video_id}_{int(start_t.timestamp())}.json"
+        f"{start_t.date().isoformat()}_{int(start_t.timestamp())}_{args.video_id}.json"
     )
     full_file_path: pathlib.Path = args.output.joinpath(pathlib.Path(file_name))
 
