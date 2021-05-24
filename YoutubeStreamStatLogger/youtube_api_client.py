@@ -2,6 +2,8 @@
 Setting this up everytime in interpreter ain't fun. So just import this in interpreter.
 Will look for google api from file named `api_key` on cwd.
 You can manually specify it when building resource file.
+
+Readability is 'amazing', even I can't read well
 """
 
 import pathlib
@@ -42,26 +44,41 @@ class Client:
         req = self.video_api.list(
             id=video_id, part="snippet", fields="items/snippet/liveBroadcastContent"
         )
+
         return req.execute()["items"][0]["snippet"]["liveBroadcastContent"]
 
     def get_video_title(self, video_id) -> str:
+
         req = self.video_api.list(
             id=video_id, part="snippet", fields="items/snippet/title"
         )
+
         return req.execute()["items"][0]["snippet"]["title"]
 
+    def get_video_description(self, video_id) -> str:
+
+        req = self.video_api.list(
+            id=video_id, part="snippet", fields="items/snippet/description"
+        )
+
+        return req.execute()["items"][0]["snippet"]["description"]
+
     def get_channel_id(self, video_id) -> str:
+
         req = self.video_api.list(
             id=video_id, part="snippet", fields="items/snippet/channelId"
         )
+
         return req.execute()["items"][0]["snippet"]["channelId"]
 
     def get_subscribers_count(self, channel_id) -> Callable:
+
         req = self.channel_api.list(
             id=channel_id,
             part="statistics",
             fields="items/statistics/subscriberCount",
         )
+
         return req.execute()["items"][0]["statistics"]["subscriberCount"]
 
     def get_upcoming_streams(self, channel_id: str) -> Tuple[str, ...]:

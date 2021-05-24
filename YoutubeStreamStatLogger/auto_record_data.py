@@ -25,12 +25,10 @@ from youtube_api_client import Client, HttpError
 ROOT = pathlib.Path(__file__).parent.absolute()
 CONFIG_PATH = ROOT.joinpath("autorec_config.json")
 LOG_STAT_PATH = ROOT.joinpath("log_stat.py")
-SELF_LOG_PATH = ROOT.joinpath("Logs")
 OUTPUT_PATH = ROOT.joinpath("Records/")
 
 logger = logging.getLogger("AutoRecord")
 
-SELF_LOG_PATH.mkdir(parents=True, exist_ok=True)
 OUTPUT_PATH.mkdir(parents=True, exist_ok=True)
 
 
@@ -193,7 +191,9 @@ async def main():
             # sleep. goodnight my kid.. kids? kid? who cares.
             sleep_time = manager.get_next_checkup
             manager.last_check = sleep_time
+
             logger.info("Sleeping until next check at %s", sleep_time)
+
             await trio.sleep(
                 (sleep_time - datetime.datetime.now(datetime.timezone.utc)).seconds
             )
@@ -227,12 +227,12 @@ if __name__ == "__main__":
         default=None,
         help="Optional Google Data API key",
     )
-    parser.add_argument(
-        "-o",
-        "--output-log",
-        action="store_true",
-        help="Custom path to store log file. Will use './Logs' if not specified.",
-    )
+    # parser.add_argument(
+    #     "-o",
+    #     "--output-log",
+    #     action="store_true",
+    #     help="Custom path to store log file. Will use './Logs' if not specified.",
+    # )
 
     args = parser.parse_args()
 
@@ -242,13 +242,7 @@ if __name__ == "__main__":
 
     start_time = datetime.datetime.now()
 
-    log_path = (
-        SELF_LOG_PATH.joinpath(f"{start_time.date().isoformat()}.log")
-        if args.output_log
-        else None
-    )
-
-    init_logger(logger, True, log_path)
+    init_logger(logger, True)
 
     logger.info(
         "Started at %s utc", datetime.datetime.utcfromtimestamp(start_time.timestamp())

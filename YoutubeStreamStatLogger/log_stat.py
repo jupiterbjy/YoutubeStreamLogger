@@ -22,9 +22,9 @@ from log_initalizer import init_logger
 from youtube_api_client import Client, HttpError
 from plot_data import plot_main
 
-YOUTUBE_API_SERVICE = "youtube"
-YOUTUBE_API_VERSION = "v3"
+
 ROOT = pathlib.Path(__file__).parent.absolute()
+MAX_RETRY = 3
 
 
 async def data_gen(record_sub=False) -> Generator[dict, None, None]:
@@ -64,37 +64,43 @@ async def data_gen(record_sub=False) -> Generator[dict, None, None]:
 
             return dict_0
 
-    try:
-        for iteration in itertools.count(0):
+    for _ in range(MAX_RETRY):
+        try:
+            for iteration in itertools.count(0):
 
-            # These might be hidden in some streams.
-            new_dict = {"viewCount": None, "likeCount": None, "dislikeCount": None}
-            new_dict.update(request_join())
+                # These might be hidden in some streams.
+                new_dict = {"viewCount": None, "likeCount": None, "dislikeCount": None}
+                new_dict.update(request_join())
 
-            log_string = (
-                "Viewers(Cur/Tot):{concurrentViewers}/{viewCount}"
-                " Likes:{likeCount}/{dislikeCount}".format(**new_dict)
-            )
+                log_string = (
+                    "Viewers(Cur/Tot):{concurrentViewers}/{viewCount}"
+                    " Likes:{likeCount}/{dislikeCount}".format(**new_dict)
+                )
 
-            logger.debug("[%s] %s", iteration, log_string)
+                logger.debug("[%s] %s", iteration, log_string)
 
-            yield new_dict
+                yield new_dict
 
-            await trio.sleep(args.poll)
+                await trio.sleep(args.poll)
 
-    except KeyError:
-        logger.info("Stream closed.")
-        return
+        except KeyError:
+            logger.info("Stream closed.")
+            continue
 
-    except HttpError as err:
-        logger.warning("HttpError: %s", err.error_details)
+        except HttpError as err:
+            logger.warning("HttpError: %s", err.error_details)
+            continue
 
-    except KeyboardInterrupt:
-        logger.warning("Got ctrl+c")
-        return
+        except KeyboardInterrupt:
+            logger.warning("Got ctrl+c")
+            break
+
+    # Block reached max retry
+    else:
+        logger.info("Max retry reached. Considering stream has ended.")
 
 
-class Router:
+class Accumulator:
     """
     Just a storage only to provide __dict__
     as this use key of given dict as self.__dict__'s key, pep8 violation is inevitable.
@@ -185,7 +191,7 @@ def fetch_api(request) -> dict:
     return new_dict
 
 
-async def wait_for_stream():
+async def wait_for_stream(client_: Client, video_id):
     """
     Literally does what it's named for. await until designated stream time.
 
@@ -195,7 +201,7 @@ async def wait_for_stream():
     # check if actually it is active/upcoming stream
 
     # Dispatch cases
-    status = client.get_stream_status(args.video_id)
+    status = client_.get_stream_status(video_id)
 
     if status == "live":
         logger.info(
@@ -210,7 +216,7 @@ async def wait_for_stream():
         raise RuntimeError("No upcoming/active stream.")
 
     # upcoming state, fetch scheduled start time
-    start_time = client.get_start_time(args.video_id)
+    start_time = client_.get_start_time(video_id)
 
     # get timedelta
     current = datetime.datetime.now(datetime.timezone.utc)
@@ -229,7 +235,7 @@ async def wait_for_stream():
         logger.info("Awake, waiting for live state.")
 
     # Check if stream is actually started
-    while status := client.get_stream_status(args.video_id):
+    while status := client_.get_stream_status(video_id):
         logger.debug("Status check: %s", status)
 
         if status == "none":
@@ -272,7 +278,7 @@ async def main():
     write_func = write_json_closure(full_file_path, data)
 
     # initialize data dispatcher, and add __dict__ instance to data
-    router_instance = Router()
+    router_instance = Accumulator()
     data["data"] = router_instance.__dict__
 
     # to make async for loop do something every n time, will use infinite cycler.
@@ -282,11 +288,11 @@ async def main():
 
     # Wait for stream to start
     try:
-        await wait_for_stream()
+        await wait_for_stream(client, args.video_id)
     except (Exception, KeyboardInterrupt):
         # Make sure to delete file
-        full_file_path.unlink()
         logger.warning("Removing empty json file %s", full_file_path.as_posix())
+        full_file_path.unlink()
         raise
 
     logger.info("Stream active, logging start.")
@@ -303,20 +309,24 @@ async def main():
     except KeyboardInterrupt:
         logger.warning("Got ctrl+c")
 
+    # hopefully this part should not run
     except Exception:
         logger.critical("Got unexpected exception. Saving file.")
 
-        write_func()
-
-        if args.graph or args.save:
-            plot_data(data, full_file_path if args.save else None)
-
         raise
 
-    write_func()
+    finally:
+        # delete if 0 data is written
+        if len(router_instance) == 0:
+            logger.warning("Gathered data length is 0. Is connection stable?")
+            logger.warning("Removing empty json file %s", full_file_path.as_posix())
+            full_file_path.unlink()
 
-    if args.graph or args.save:
-        plot_data(data, full_file_path if args.save else None)
+        else:
+            write_func()
+
+            if args.graph or args.save:
+                plot_data(data, full_file_path if args.save else None)
 
 
 def plot_data(data: dict, file_path: Union[None, pathlib.Path]):
@@ -403,3 +413,6 @@ if __name__ == "__main__":
     client = Client(args.api)
     init_logger(logger, args.verbose)
     trio.run(main)
+else:
+    logger = logging.getLogger("log_stat")
+    init_logger(logger, True)

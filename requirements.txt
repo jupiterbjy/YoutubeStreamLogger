@@ -1,4 +1,7 @@
-google-api-python-client==2.3.0
+google-api-python-client~=2.5.0
 jsbeautifier~=1.13.13
 matplotlib~=3.4.1
 trio~=0.18.0
+
+coloredlogs~=15.0
+python-dateutil~=2.8.1
