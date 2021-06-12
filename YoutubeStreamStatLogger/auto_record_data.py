@@ -95,14 +95,15 @@ class Manager:
                 upcoming = self.client.get_upcoming_streams(channel_id)
                 live = self.client.get_live_streams(channel_id)
             except HttpError as err:
-                if err.error_details == "quotaExceeded":
-                    logger.critical("Data API quota exceeded, cannot use the API.")
+                if err.content[0]["reason"] == "quotaExceeded":
+                    logger.critical("Data API quota exceeded, cannot use the API for the moment. Will keep running.")
                 else:
                     logger.critical(
                         "Unknown HttpError received, error detail: %s",
                         err.error_details,
                     )
-                raise
+                    raise
+                return {}
 
             logger.debug("Checking channel %s %s", channel, channel_id)
 
@@ -227,12 +228,6 @@ if __name__ == "__main__":
         default=None,
         help="Optional Google Data API key",
     )
-    # parser.add_argument(
-    #     "-o",
-    #     "--output-log",
-    #     action="store_true",
-    #     help="Custom path to store log file. Will use './Logs' if not specified.",
-    # )
 
     args = parser.parse_args()
 
