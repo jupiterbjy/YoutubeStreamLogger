@@ -95,7 +95,7 @@ class Manager:
                 upcoming = self.client.get_upcoming_streams(channel_id)
                 live = self.client.get_live_streams(channel_id)
             except HttpError as err:
-                if err.content[0]["reason"] == "quotaExceeded":
+                if "quotaExceeded" in str(err):
                     logger.critical("Data API quota exceeded, cannot use the API for the moment. Will keep running.")
                 else:
                     logger.critical(
