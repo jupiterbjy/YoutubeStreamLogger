@@ -283,7 +283,7 @@ async def main():
 
     # to make async for loop do something every n time, will use infinite cycler.
     flush_interval_control = itertools.cycle(
-        not bool(n) for n in reversed(range(args.flush))
+        not bool(n) for n in reversed(range(30))
     )
 
     # Wait for stream to start
