@@ -8,6 +8,7 @@ Logging to file is turned off by default, as Piping it to file seemed better.
 both console and file. This way you can also collect child tasks' logs.
 """
 
+import traceback
 import datetime
 import argparse
 import logging
@@ -62,6 +63,8 @@ class Manager:
         # will contain Tuple[abc. channel name / channel id / video id]
         self.video_in_task = set()
 
+        self.ignored = set()
+
         self.last_check = datetime.datetime.now(datetime.timezone.utc)
         self.load_config()
 
@@ -95,6 +98,8 @@ class Manager:
                 upcoming = self.client.get_upcoming_streams(channel_id)
                 live = self.client.get_live_streams(channel_id)
             except HttpError as err:
+                traceback.print_exc()
+
                 if "quotaExceeded" in str(err):
                     logger.critical("Data API quota exceeded, cannot use the API for the moment. Will keep running.")
                 else:
@@ -115,14 +120,14 @@ class Manager:
                     # seems like it's better this way rather than gen-exp. Even shorter.
                     # No need to include videos which is already assigned.
 
-                    if vid_id not in self.video_in_task:
+                    if vid_id not in (self.video_in_task | self.ignored):
                         video_live[vid_id] = channel
 
             if upcoming:
                 # you know, this ain't as rare as concurrent live streams.
 
                 for vid_id in upcoming:
-                    if vid_id not in self.video_in_task:
+                    if vid_id not in (self.video_in_task | self.ignored):
                         video_upcoming[vid_id] = channel
 
         # check how much time we have for upcoming videos
@@ -131,7 +136,12 @@ class Manager:
 
             # if it's due before next checkup, just consider it as live.
             if stream_start < self.get_next_checkup:
-                video_live[video_id] = channel
+                # if it's already past, ignore it.
+                if stream_start < datetime.datetime.now(datetime.timezone.utc):
+                    logger.warning("Skipping stream %s, scheduled time %s is already passed. Ignoring", video_id, stream_start)
+                    self.ignored.add(video_id)
+                else:
+                    video_live[video_id] = channel
 
         logger.info(
             "Found %s upcoming stream(s), %s live/imminent stream(s)",
